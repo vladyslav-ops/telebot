@@ -1,4 +1,4 @@
-FROM golang:1.21 AS builder
+FROM --platform=$BUILDPLATFORM quay.io/projectquay/golang:1.26 AS builder
 
 WORKDIR /go/src/app
 
@@ -9,13 +9,14 @@ ARG TARGETARCH=amd64
 
 RUN go get ./... && \
     CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \
-    -v -o telebot -ldflags "-X=github.com/your-username/telebot/cmd.appVersion=v1.0.0"
+    -v -o telebot -ldflags "-X=github.com/vladyslav-ops/telebot/cmd.appVersion=v1.0.0"
 
 FROM scratch
 
 WORKDIR /
 
 COPY --from=builder /go/src/app/telebot .
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+
+COPY --from=builder /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem /etc/ssl/certs/ca-certificates.crt
 
 ENTRYPOINT ["./telebot", "start"]
