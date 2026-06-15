@@ -14,7 +14,7 @@ image:
   # This sets the pull policy for images.
   pullPolicy: IfNotPresent
   # Image tag (version + short commit sha). Updated automatically by CI.
-  tag: "v1.0.0"
+  tag: "v1.0.0-7e2e7b9"
   # OS and architecture appended to the tag (e.g. :v1.0.0-<sha>-linux-amd64).
   os: linux
   arch: amd64
