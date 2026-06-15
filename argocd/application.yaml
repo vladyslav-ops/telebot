@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: telebot
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/vladyslav-ops/telebot.git
+    targetRevision: develop
+    path: telebot
+    helm:
+      # Provide the Telegram token securely (or pre-create the Secret in-cluster).
+      parameters:
+        - name: secret.token
+          value: ""   # set via ArgoCD UI / a sealed secret, do not commit
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: telebot
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

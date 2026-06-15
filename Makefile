@@ -1,8 +1,8 @@
 APP=$(shell basename $(shell git remote get-url origin 2>/dev/null || echo "telebot") .git)
-# Alternative container registry (quay.io) instead of Docker Hub
-# to avoid Docker Hub licensing / pull-rate-limit issues.
-REGISTRY?=quay.io/vladyslav-ops
-VERSION=$(shell git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")
+# GitHub Container Registry (ghcr.io) — used by the CI/CD pipeline.
+REGISTRY?=ghcr.io/vladyslav-ops
+# Version = latest git tag + short commit sha, e.g. v1.0.0-106879e
+VERSION=$(shell git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")-$(shell git rev-parse --short HEAD)
 
 # Host platform / architecture (the machine running `make`).
 HOSTOS=$(shell go env GOOS)

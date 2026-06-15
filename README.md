@@ -82,6 +82,39 @@ make push     — push Docker-образу
 make clean    — очищення артефактів
 ```
 
+## CI/CD Pipeline
+
+Повний цикл автоматизовано через **GitHub Actions** → **ghcr.io** → **ArgoCD** → **Kubernetes**.
+Pipeline запускається при кожному `push` у гілку `develop`.
+
+```mermaid
+flowchart LR
+    Dev[Developer] -->|git push| Develop[(branch: develop)]
+    Develop -->|trigger| GHA[GitHub Actions]
+
+    subgraph GHA[GitHub Actions Workflow]
+        direction TB
+        Build[Build Go binary] --> Image[docker build<br/>linux/amd64]
+        Image --> Push[Push image to ghcr.io]
+        Push --> Bump[Update tag in<br/>telebot/values.yaml]
+        Bump --> Commit[Commit & push]
+    end
+
+    Push --> GHCR[(ghcr.io/vladyslav-ops/telebot<br/>:vX.Y.Z-sha-linux-amd64)]
+    Commit --> Repo[(Git repo)]
+    Repo -->|watches develop| ArgoCD[ArgoCD]
+    ArgoCD -->|helm sync| K8s[(Kubernetes cluster)]
+    GHCR -.->|pull image| K8s
+    K8s --> Bot[Telegram Bot running]
+```
+
+**Кроки:**
+1. `push` у `develop` запускає workflow [.github/workflows/cicd.yml](.github/workflows/cicd.yml).
+2. Збирається бінарник і Docker-образ для `linux/amd64`.
+3. Образ публікується в `ghcr.io` з тегом `vX.Y.Z-<sha>-linux-amd64`.
+4. Новий тег записується в `telebot/values.yaml` і комітиться назад.
+5. **ArgoCD** ([argocd/application.yaml](argocd/application.yaml)) відстежує `develop`, синхронізує Helm-чарт і розгортає бота в Kubernetes.
+
 ## Стек технологій
 
 - **Go** — мова програмування

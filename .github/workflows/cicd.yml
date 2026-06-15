@@ -1,0 +1,65 @@
+name: CI/CD
+
+# Run on every push to the develop branch of the main code.
+on:
+  push:
+    branches:
+      - develop
+
+env:
+  REGISTRY: ghcr.io
+  TARGETOS: linux
+  TARGETARCH: amd64
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # to commit the updated Helm tag back to the repo
+      packages: write    # to push the image to ghcr.io
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history so `git describe` finds tags
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+
+      - name: Compute image tag
+        id: meta
+        run: |
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo v1.0.0)
+          SHA=$(git rev-parse --short HEAD)
+          REPO=$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')
+          echo "tag=${VERSION}-${SHA}" >> "$GITHUB_OUTPUT"
+          echo "image=${REGISTRY}/${REPO}:${VERSION}-${SHA}-${TARGETOS}-${TARGETARCH}" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        run: |
+          docker build . \
+            -t "${{ steps.meta.outputs.image }}" \
+            --build-arg TARGETOS=${TARGETOS} \
+            --build-arg TARGETARCH=${TARGETARCH}
+          docker push "${{ steps.meta.outputs.image }}"
+
+      - name: Update Helm chart image tag
+        run: |
+          sed -i "s|^  tag: .*|  tag: \"${{ steps.meta.outputs.tag }}\"|" telebot/values.yaml
+
+      - name: Commit updated tag
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add telebot/values.yaml
+          git commit -m "ci: bump image tag to ${{ steps.meta.outputs.tag }}" || echo "no changes"
+          git push
