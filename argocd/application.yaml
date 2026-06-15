@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: https://github.com/vladyslav-ops/telebot.git
     targetRevision: develop
-    path: telebot
+    path: helm
     helm:
       # Provide the Telegram token securely (or pre-create the Secret in-cluster).
       parameters:

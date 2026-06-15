@@ -96,7 +96,7 @@ flowchart LR
         direction TB
         Build[Build Go binary] --> Image[docker build<br/>linux/amd64]
         Image --> Push[Push image to ghcr.io]
-        Push --> Bump[Update tag in<br/>telebot/values.yaml]
+        Push --> Bump[Update tag in<br/>helm/values.yaml]
         Bump --> Commit[Commit & push]
     end
 
@@ -112,7 +112,7 @@ flowchart LR
 1. `push` у `develop` запускає workflow [.github/workflows/cicd.yml](.github/workflows/cicd.yml).
 2. Збирається бінарник і Docker-образ для `linux/amd64`.
 3. Образ публікується в `ghcr.io` з тегом `vX.Y.Z-<sha>-linux-amd64`.
-4. Новий тег записується в `telebot/values.yaml` і комітиться назад.
+4. Новий тег записується в `helm/values.yaml` і комітиться назад.
 5. **ArgoCD** ([argocd/application.yaml](argocd/application.yaml)) відстежує `develop`, синхронізує Helm-чарт і розгортає бота в Kubernetes.
 
 ## Стек технологій
