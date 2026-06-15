@@ -47,8 +47,8 @@ windows:
 ## Standard `docker build` (BuildKit) — no buildx; cross-compiles via build-args.
 image:
 	docker build . -t $(IMAGE_TAG) \
-		--build-arg TARGETOS=$(HOSTOS) \
-		--build-arg TARGETARCH=$(HOSTARCH)
+		--build-arg TARGETOS=$(TARGETOS) \
+		--build-arg TARGETARCH=$(TARGETARCH)
 
 push:
 	docker push $(IMAGE_TAG)
