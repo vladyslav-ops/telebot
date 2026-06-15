@@ -1,0 +1,52 @@
+#!/bin/bash
+#
+# kubeplugin — a kubectl plugin that prints resource usage statistics
+# (CPU / Memory) for pods or nodes in a given namespace.
+#
+# As a kubectl plugin it must be named "kubectl-<name>", placed on the PATH
+# and made executable. It is then invoked as a kubectl subcommand, e.g.:
+#
+#   kubectl stats pods kube-system
+#
+# It can also be run directly:
+#
+#   ./kubeplugin pods kube-system
+#
+# Arguments:
+#   $1  RESOURCE_TYPE   pod | pods | node | nodes   (default: pods)
+#   $2  NAMESPACE       Kubernetes namespace         (default: kube-system)
+#
+# Output format (CSV-like, with header):
+#   Resource, Namespace, Name, CPU, Memory
+
+set -euo pipefail
+
+# --- Arguments (with sane defaults) -----------------------------------------
+RESOURCE_TYPE="${1:-pods}"
+NAMESPACE="${2:-kube-system}"
+
+# --- Help -------------------------------------------------------------------
+if [[ "${RESOURCE_TYPE}" == "-h" || "${RESOURCE_TYPE}" == "--help" ]]; then
+  grep '^#' "$0" | cut -c 3-
+  exit 0
+fi
+
+# `kubectl top nodes` is cluster-scoped and ignores -n, so build the
+# namespace flag only for namespaced resources (pods).
+NS_FLAG=()
+case "${RESOURCE_TYPE}" in
+  pod|pods) NS_FLAG=(-n "${NAMESPACE}") ;;
+esac
+
+# --- Header -----------------------------------------------------------------
+echo "Resource, Namespace, Name, CPU, Memory"
+
+# --- Collect and format metrics ---------------------------------------------
+# `--no-headers` drops kubectl's column header so we only parse data rows.
+kubectl top "${RESOURCE_TYPE}" "${NS_FLAG[@]}" --no-headers | while read -r line; do
+  NAME=$(echo "${line}"   | awk '{print $1}')
+  CPU=$(echo "${line}"    | awk '{print $2}')
+  MEMORY=$(echo "${line}" | awk '{print $3}')
+
+  echo "${RESOURCE_TYPE}, ${NAMESPACE}, ${NAME}, ${CPU}, ${MEMORY}"
+done
